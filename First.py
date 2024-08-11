@@ -12,32 +12,26 @@ h = mp_hands.Hands(max_num_hands=1, min_detection_confidence=0.5)
 cap = cv.VideoCapture(0)
 handPos = {}
 pressed = False
-rHand=False
-lHand=False
 last_press_time = 0
-
 while True:
     r, frame = cap.read()
     if r:
-        frame = cv.resize(frame, (500, 500))
+        frame = cv.resize(frame, (800, 600))
         frame = cv.flip(frame, 1)
         frame = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
-        frame.flags.writeable = False
 
         # Process the frame with Mediapipe
         res = h.process(frame)
         frame = cv.cvtColor(frame, cv.COLOR_RGB2BGR)
 
         current_time = time.time() #current
-        if pressed and (current_time - last_press_time) >= 2:
+        if pressed and (current_time - last_press_time) >= 1:
             pressed = False
-
         if res.multi_hand_landmarks:
             for lm,hand_handedness in zip(res.multi_hand_landmarks,res.multi_handedness):
                 myHand = res.multi_hand_landmarks[0]
                 handedness = hand_handedness.classification[0].label
-                if handedness=='right': rHand = True
-                elif handedness=='left': lHand = True
+
                 for id, point in enumerate(myHand.landmark):
                     height, width, _ = frame.shape
                     cx, cy = int(point.x * width), int(point.y * height)  # Convert coordinates
@@ -59,10 +53,20 @@ while True:
                     pg.press('right')
                     pressed=True
                     last_press_time = current_time
+                if HG.pressUp(handPos,handedness) and not pressed:
+                    print('Up pressed')
+                    pg.press('up')
+                    pressed = True
+                    last_press_time = current_time
+                if HG.pressDown(handPos,handedness) and not pressed:
+                    print('down pressed')
+                    pg.press('down')
+                    pressed = True
+                    last_press_time = current_time
                 mp_drawing.draw_landmarks(frame, lm, mp_hands.HAND_CONNECTIONS)
 
-        cv.imshow('frame', frame)
 
+        cv.imshow('frame', frame)
         # Exit if 'q' is pressed
         if cv.waitKey(1) & 0xFF == ord('q'):
             break
